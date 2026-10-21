@@ -49,6 +49,8 @@
     async function refreshCalendar(){try{const response=await fetch(feedUrl,{cache:'no-store'});if(!response.ok)throw new Error('feed '+response.status);const incoming=liveGroups(await response.json());if(incoming.length){data=incoming;render(document.querySelector('.filter.active')?.dataset.filter||'all');const now=new Date().toLocaleString('zh-CN',{hour12:false});updateLabel.innerHTML=`<span class="legend">★</span> = 事件重要性　·　Δ = 实际 − 预期　·　自动更新于 ${now}（每 30 分钟）`;localStorage.setItem('rili:last-data',JSON.stringify({data,updatedAt:now}));}}catch(error){const cached=localStorage.getItem('rili:last-data');if(cached){try{const saved=JSON.parse(cached);if(Array.isArray(saved.data)){data=saved.data;render(document.querySelector('.filter.active')?.dataset.filter||'all');}}catch(_){}}}}
     refreshCalendar();
     setInterval(refreshCalendar,30*60*1000);
+    const filterLabels={earnings:'财报',ipo:'IPO',splits:'拆股',dividends:'分红'};
+    document.querySelectorAll('.filter').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.filter!=='all'){calendar.style.display='none';empty.style.display='block';empty.textContent=`${filterLabels[button.dataset.filter]}数据源尚未接入，当前自动更新服务提供宏观经济日历。`;}}));
   </script>
 </body>
 </html>
