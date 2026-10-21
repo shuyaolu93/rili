@@ -28,8 +28,9 @@
     </main>
   </div>
   <script>
+    const TIME_ZONE='Asia/Shanghai';
     const weekday=['日','一','二','三','四','五','六'];
-    const liveDates=Array.from({length:14},(_,i)=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+i);return [weekday[d.getDay()],String(d.getDate()).padStart(2,'0'),i===0?'today':(i===3?'selected':''),''];});
+    const liveDates=Array.from({length:14},(_,i)=>{const d=new Date(new Date().toLocaleString('en-US',{timeZone:TIME_ZONE}));d.setHours(0,0,0,0);d.setDate(d.getDate()+i);return [weekday[d.getDay()],String(d.getDate()).padStart(2,'0'),i===0?'today':(i===3?'selected':''),''];});
     document.querySelector('#dates').innerHTML=liveDates.map(([w,n,c,d])=>`<div class="day ${c}"><small>${c==='today'?'— 今日':w}</small>${n}<div class="dots">${d}</div></div>`).join('');
     let data=[
       {day:'周三 9/23',tag:'T-2',items:[['09:45','★★☆','标普全球制造业 PMI','Sep','53.6 ▼','53.9','-0.3','down'],['09:45','★★☆','标普全球服务业 PMI','Sep','56 ▼','56.5','-0.5','down']]},
@@ -46,8 +47,8 @@
     const feedUrl='/api/calendar';
     const updateLabel=document.querySelector('.footer');
     function formatFeedDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?null:d;}
-    function liveGroups(items){const groups={};for(const item of items){const d=formatFeedDate(item.date);if(!d||!item.title)continue;const key=d.toLocaleDateString('zh-CN',{weekday:'short',month:'numeric',day:'numeric'});(groups[key]??={day:key,tag:'LIVE',items:[]}).items.push([d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false}),item.impact==='High'?'★★★':item.impact==='Medium'?'★★☆':'★☆☆',item.title,item.country||'—','未公布',item.forecast||'—','—','']);}return Object.values(groups).slice(0,14);}
-    async function refreshCalendar(){try{const response=await fetch(feedUrl,{cache:'no-store'});if(!response.ok)throw new Error('feed '+response.status);const incoming=liveGroups(await response.json());if(incoming.length){data=incoming;render(document.querySelector('.filter.active')?.dataset.filter||'all');const now=new Date().toLocaleString('zh-CN',{hour12:false});updateLabel.innerHTML=`<span class="legend">★</span> = 事件重要性　·　Δ = 实际 − 预期　·　自动更新于 ${now}（每 30 分钟）`;localStorage.setItem('rili:last-data',JSON.stringify({data,updatedAt:now}));}}catch(error){const cached=localStorage.getItem('rili:last-data');if(cached){try{const saved=JSON.parse(cached);if(Array.isArray(saved.data)){data=saved.data;render(document.querySelector('.filter.active')?.dataset.filter||'all');}}catch(_){}}}}
+    function liveGroups(items){const groups={};for(const item of items){const d=formatFeedDate(item.date);if(!d||!item.title)continue;const key=d.toLocaleDateString('zh-CN',{timeZone:TIME_ZONE,weekday:'short',month:'numeric',day:'numeric'});(groups[key]??={day:key,tag:'LIVE',items:[]}).items.push([d.toLocaleTimeString('en-US',{timeZone:TIME_ZONE,hour:'2-digit',minute:'2-digit',hour12:false}),item.impact==='High'?'★★★':item.impact==='Medium'?'★★☆':'★☆☆',item.title,item.country||'—','未公布',item.forecast||'—','—','']);}return Object.values(groups).slice(0,14);}
+    async function refreshCalendar(){try{const response=await fetch(feedUrl,{cache:'no-store'});if(!response.ok)throw new Error('feed '+response.status);const payload=await response.json();const incoming=liveGroups(payload.events||payload);if(incoming.length){data=incoming;render(document.querySelector('.filter.active')?.dataset.filter||'all');const now=new Date().toLocaleString('zh-CN',{timeZone:TIME_ZONE,hour12:false});updateLabel.innerHTML=`<span class="legend">★</span> = 事件重要性　·　Δ = 实际 − 预期　·　北京时间 ${now} 自动更新（每 30 分钟）`;localStorage.setItem('rili:last-data',JSON.stringify({data,updatedAt:now}));}}catch(error){const cached=localStorage.getItem('rili:last-data');if(cached){try{const saved=JSON.parse(cached);if(Array.isArray(saved.data)){data=saved.data;render(document.querySelector('.filter.active')?.dataset.filter||'all');}}catch(_){}}}}
     refreshCalendar();
     setInterval(refreshCalendar,30*60*1000);
     const filterLabels={earnings:'财报',ipo:'IPO',splits:'拆股',dividends:'分红'};
