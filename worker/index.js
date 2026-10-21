@@ -3,7 +3,9 @@ const UPSTREAM = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
 const CACHE_TTL = 30 * 60;
 
 function htmlResponse() {
-  const html = atob(HTML_BASE64);
+  const binary = atob(HTML_BASE64);
+  const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+  const html = new TextDecoder().decode(bytes);
   return new Response(html, {headers: {'content-type': 'text/html; charset=UTF-8', 'cache-control': 'public, max-age=60'}});
 }
 
