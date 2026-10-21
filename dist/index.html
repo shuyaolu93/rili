@@ -27,9 +27,10 @@
     </main>
   </div>
   <script>
-    const dates=[['一','21','today',''],['二','22','',''],['三','23','','••'],['四','24','selected','••'],['五','25','','•'],['六','26','',''],['日','27','',''],['一','28','',''],['二','29','','•'],['三','30','','•••'],['四','01','','••'],['五','02','','•••'],['六','03','',''],['日','04','','']];
-    document.querySelector('#dates').innerHTML=dates.map(([w,n,c,d])=>`<div class="day ${c}"><small>${c==='today'?'— 今日':w}</small>${n}<div class="dots">${d}</div></div>`).join('');
-    const data=[
+    const weekday=['日','一','二','三','四','五','六'];
+    const liveDates=Array.from({length:14},(_,i)=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+i);return [weekday[d.getDay()],String(d.getDate()).padStart(2,'0'),i===0?'today':(i===3?'selected':''),''];});
+    document.querySelector('#dates').innerHTML=liveDates.map(([w,n,c,d])=>`<div class="day ${c}"><small>${c==='today'?'— 今日':w}</small>${n}<div class="dots">${d}</div></div>`).join('');
+    let data=[
       {day:'周三 9/23',tag:'T-2',items:[['09:45','★★☆','标普全球制造业 PMI','Sep','53.6 ▼','53.9','-0.3','down'],['09:45','★★☆','标普全球服务业 PMI','Sep','56 ▼','56.5','-0.5','down']]},
       {day:'周四 9/24',tag:'T-3',items:[['08:30','★★☆','初请失业金人数','Sep/19','202 ▲','196','+6','up'],['10:00','★★☆','新屋销售总数','Aug','0.61 ▲','0.607','+0.003','up','emphasis']]},
       {day:'周五 9/25',tag:'T-4',items:[['08:30','★★☆','耐用品订单 月率','Aug','-0.5 ▼','1.1','-1.6','down']]},
@@ -41,6 +42,14 @@
     const calendar=document.querySelector('#calendar'), empty=document.querySelector('#empty');
     function render(filter='all'){const visible=filter==='all'?data:[];calendar.innerHTML=visible.map(g=>`<div class="group"><div class="group-head">●　${g.day}<span class="countdown">${g.tag}</span><span class="count">${g.items.length} 项</span></div>${g.items.map(e=>`<div class="event ${e[8]||''}"><span class="time">${e[0]}</span><span class="stars ${e[1].includes('★★★')?'hot':''}">${e[1]}</span><span class="event-name">${e[2]}</span><span class="period">${e[3]}</span><span class="actual">${e[4]}</span><span class="expected">${e[5]}</span><span class="delta ${e[7]||''}">${e[6]}</span></div>`).join('')}</div>`).join('');calendar.style.display=visible.length?'block':'none';empty.style.display=visible.length?'none':'block'}
     document.querySelectorAll('.filter').forEach(b=>b.addEventListener('click',()=>{document.querySelector('.filter.active').classList.remove('active');b.classList.add('active');render(b.dataset.filter)}));render();
+    const feedUrl='https://nfs.faireconomy.media/ff_calendar_thisweek.json';
+    const updateLabel=document.querySelector('.footer');
+    function formatFeedDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?null:d;}
+    function liveGroups(items){const groups={};for(const item of items){const d=formatFeedDate(item.date);if(!d||!item.title)continue;const key=d.toLocaleDateString('zh-CN',{weekday:'short',month:'numeric',day:'numeric'});(groups[key]??={day:key,tag:'LIVE',items:[]}).items.push([d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false}),item.impact==='High'?'★★★':item.impact==='Medium'?'★★☆':'★☆☆',item.title,item.country||'—','未公布',item.forecast||'—','—','']);}return Object.values(groups).slice(0,14);}
+    async function refreshCalendar(){try{const response=await fetch(feedUrl,{cache:'no-store'});if(!response.ok)throw new Error('feed '+response.status);const incoming=liveGroups(await response.json());if(incoming.length){data=incoming;render(document.querySelector('.filter.active')?.dataset.filter||'all');const now=new Date().toLocaleString('zh-CN',{hour12:false});updateLabel.innerHTML=`<span class="legend">★</span> = 事件重要性　·　Δ = 实际 − 预期　·　自动更新于 ${now}（每 30 分钟）`;localStorage.setItem('rili:last-data',JSON.stringify({data,updatedAt:now}));}}catch(error){const cached=localStorage.getItem('rili:last-data');if(cached){try{const saved=JSON.parse(cached);if(Array.isArray(saved.data)){data=saved.data;render(document.querySelector('.filter.active')?.dataset.filter||'all');}}catch(_){}}}}
+    refreshCalendar();
+    setInterval(refreshCalendar,30*60*1000);
   </script>
 </body>
 </html>
+
