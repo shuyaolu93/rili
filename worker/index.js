@@ -5,7 +5,7 @@ const UPSTREAMS = [
   'https://cdn-nfs.faireconomy.media/ff_calendar_thisweek.json',
   'https://nfs.faireconomy.media/ff_calendar_thisweek.json'
 ];
-const CACHE_KEY = 'calendar-v1';
+const CACHE_KEY = 'calendar-v2';
 const CACHE_TTL = 30 * 60;
 const TITLE_TRANSLATIONS = {
   'Nonfarm Payrolls':'非农就业人数','Unemployment Rate':'失业率','CPI':'消费者物价指数','Core CPI':'核心消费者物价指数','PPI':'生产者物价指数','Core PPI':'核心生产者物价指数','GDP':'国内生产总值','GDP Price Index':'国内生产总值价格指数','Retail Sales':'零售销售','Initial Jobless Claims':'初请失业金人数','Continuing Jobless Claims':'续请失业金人数','PMI':'采购经理人指数','ISM Manufacturing PMI':'ISM制造业采购经理人指数','ISM Services PMI':'ISM服务业采购经理人指数','Consumer Confidence':'消费者信心指数','Housing Starts':'新屋开工','Building Permits':'营建许可','Existing Home Sales':'成屋销售','New Home Sales':'新屋销售','Durable Goods Orders':'耐用品订单','Trade Balance':'贸易帐','Industrial Production':'工业产出','Pending Home Sales':'成屋签约销售','Interest Rate Decision':'利率决议','Federal Funds Rate':'联邦基金利率','FOMC':'联邦公开市场委员会','Fed Chair':'美联储主席讲话','ECB':'欧洲央行','BOJ':'日本央行','RBA':'澳洲联储','SNB':'瑞士央行','OPEC':'石油输出国组织','Crude Oil Inventories':'原油库存','Natural Gas Storage':'天然气库存','Michigan Consumer Sentiment':'密歇根大学消费者信心指数','Wholesale Inventories':'批发库存','Business Inventories':'商业库存','ADP Employment Change':'ADP就业人数变化','JOLTS Job Openings':'JOLTS职位空缺','Average Hourly Earnings':'平均时薪','Average Weekly Hours':'平均每周工时','Personal Income':'个人收入','Personal Spending':'个人支出','Core PCE Price Index':'核心个人消费支出价格指数','PCE Price Index':'个人消费支出价格指数','Factory Orders':'工厂订单','Capacity Utilization':'产能利用率','Leading Indicators':'领先指标'
@@ -40,7 +40,7 @@ function htmlResponse() {
   const binary = atob(HTML_BASE64);
   const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
   const html = new TextDecoder().decode(bytes);
-  return new Response(html, {headers: {'content-type': 'text/html; charset=UTF-8', 'cache-control': 'public, max-age=60'}});
+  return new Response(html, {headers: {'content-type': 'text/html; charset=UTF-8', 'cache-control': 'no-store'}});
 }
 
 async function refreshData(env) {
@@ -80,9 +80,9 @@ async function refreshData(env) {
 
 async function calendarResponse(request, env, ctx) {
   const cached = env.CALENDAR_CACHE ? await env.CALENDAR_CACHE.get(CACHE_KEY) : null;
-  if (cached) return new Response(cached, {headers: {'content-type': 'application/json; charset=UTF-8', 'cache-control': 'public, max-age=' + CACHE_TTL, 'x-rili-cache': 'hit'}});
+  if (cached) return new Response(cached, {headers: {'content-type': 'application/json; charset=UTF-8', 'cache-control': 'no-store', 'x-rili-cache': 'hit'}});
   const fresh = await refreshData(env);
-  if (fresh) return new Response(fresh, {headers: {'content-type': 'application/json; charset=UTF-8', 'cache-control': 'public, max-age=' + CACHE_TTL, 'x-rili-cache': 'miss'}});
+  if (fresh) return new Response(fresh, {headers: {'content-type': 'application/json; charset=UTF-8', 'cache-control': 'no-store', 'x-rili-cache': 'miss'}});
   return new Response(JSON.stringify({error: 'calendar feed unavailable', events: []}), {status: 503, headers: {'content-type': 'application/json; charset=UTF-8'}});
 }
 
